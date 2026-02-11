@@ -117,7 +117,7 @@
         <div class="x-labels" id="xLabels"></div>
       </div>
       <div style="text-align:center; margin-top:15px; font-size:14px; color:#444;">
-        <strong>N</strong> = приватна модель дає більше грошей  <strong>W</strong> = солідарна модель дає більше  <strong>≈</strong> = приблизно рівно
+        <strong>N</strong> = приватна модель дає більше грошей за життя  <strong>W</strong> = солідарна модель дає більше  <strong>≈</strong> = приблизно рівно
       </div>
     </div>
   </div>
@@ -240,21 +240,34 @@
 
       const hm = document.getElementById('heatmap');
       hm.innerHTML = '';
-      returns.forEach(r => {
-        lives.forEach(l => {
-          const test = {...inputs, return:r, lifeExpectancy:l};
-          const p = calculatePrivate(test).finalCapital * 0.6 + test.existingCapital;
-          const w = calculateWarsaw(test).totalReceived;
-          const ratio = p / (w || 1);
-          let color = ratio > 1.4 ? '#1f4e79' : ratio > 1.1 ? '#4a8fd4' : ratio > 0.9 ? '#999' : ratio > 0.65 ? '#c95a5a' : '#7a1f1f';
-          let txt = ratio > 1.25 ? 'N' : ratio < 0.8 ? 'W' : '≈';
-          const cell = document.createElement('div');
-          cell.className = 'heat-cell';
-          cell.style.backgroundColor = color;
-          cell.textContent = txt;
-          hm.appendChild(cell);
-        });
+     returns.forEach(r => {
+      lives.forEach(l => {
+        const test = {...inputs, return: r, lifeExpectancy: l};
+        const priv = calculatePrivate(test);
+        const war = calculateWarsaw(test);
+
+        const yearsAfter = test.lifeExpectancy - test.retAge;
+        const realReturn = (1 + test.return/100) / (1 + test.inflation/100) - 1;
+        let annualPrivate = 0;
+        if (realReturn > 0) {
+          annualPrivate = priv.finalCapital * (realReturn / (1 - Math.pow(1 + realReturn, -yearsAfter)));
+        } else {
+          annualPrivate = priv.finalCapital / yearsAfter;
+        }
+        const totalPrivate = annualPrivate * yearsAfter;
+
+        const ratio = totalPrivate / war.totalReceived;
+
+        let color = ratio > 1.35 ? '#1f4e79' : ratio > 1.1 ? '#4a8fd4' : ratio > 0.9 ? '#999' : ratio > 0.7 ? '#c95a5a' : '#7a1f1f';
+        let txt = ratio > 1.25 ? 'N' : ratio < 0.8 ? 'W' : '≈';
+
+        const cell = document.createElement('div');
+        cell.className = 'heat-cell';
+        cell.style.backgroundColor = color;
+        cell.textContent = txt;
+        hm.appendChild(cell);
       });
+    });
     }
 
     window.onload = runSimulation;
