@@ -231,43 +231,64 @@
         data: { labels: ages, datasets: [{ label: 'Ймовірність дожити (%)', data: survivalData, borderColor: '#2c3e50', tension: 0.35 }] }
       });
 
-      // Heatmap + labels
-      const returns = [4,5,6,7,8,9,10,11,12,13];
-      const lives = [74,76,78,80,82,84,86,88,90,94];
+      // Heatmap (економічно коректний NPV)
+const returns = [4,5,6,7,8,9,10,11,12,13];
+const lives = [74,76,78,80,82,84,86,88,90,94];
 
-      document.getElementById('yLabels').innerHTML = lives.map(l => `<div class="y-label">${l}</div>`).join('');
-      document.getElementById('xLabels').innerHTML = returns.map(r => `<div class="x-label">${r}%</div>`).join('');
+document.getElementById('yLabels').innerHTML =
+  lives.map(l => `<div class="y-label">${l}</div>`).join('');
 
-      const hm = document.getElementById('heatmap');
-      hm.innerHTML = '';
-     returns.forEach(r => {
-      lives.forEach(l => {
-        const test = {...inputs, return: r, lifeExpectancy: l};
-        const priv = calculatePrivate(test);
-        const war = calculateWarsaw(test);
+document.getElementById('xLabels').innerHTML =
+  returns.map(r => `<div class="x-label">${r}%</div>`).join('');
 
-        const yearsAfter = test.lifeExpectancy - test.retAge;
-        const realReturn = (1 + test.return/100) / (1 + test.inflation/100) - 1;
-        let annualPrivate = 0;
-        if (realReturn > 0) {
-          annualPrivate = priv.finalCapital * (realReturn / (1 - Math.pow(1 + realReturn, -yearsAfter)));
-        } else {
-          annualPrivate = priv.finalCapital / yearsAfter;
-        }
-        const totalPrivate = annualPrivate * yearsAfter;
+const hm = document.getElementById('heatmap');
+hm.innerHTML = '';
 
-        const ratio = totalPrivate / war.totalReceived;
+returns.forEach(r => {
+  lives.forEach(l => {
 
-        let color = ratio > 1.35 ? '#1f4e79' : ratio > 1.1 ? '#4a8fd4' : ratio > 0.9 ? '#999' : ratio > 0.7 ? '#c95a5a' : '#7a1f1f';
-        let txt = ratio > 1.25 ? 'N' : ratio < 0.8 ? 'W' : '≈';
+    const test = {...inputs, return: r, lifeExpectancy: l};
 
-        const cell = document.createElement('div');
-        cell.className = 'heat-cell';
-        cell.style.backgroundColor = color;
-        cell.textContent = txt;
-        hm.appendChild(cell);
-      });
-    });
+    const priv = calculatePrivate(test);
+    const war = calculateWarsaw(test);
+
+    const yearsAfter = test.lifeExpectancy - test.retAge;
+    if (yearsAfter <= 0) return;
+
+    // Реальна ставка
+    const realReturn = (1 + r/100) / (1 + test.inflation/100) - 1;
+
+    // NPV приватної (капітал на момент пенсії)
+    const npvPrivate = priv.finalCapital;
+
+    // Реальна пенсія (вона вже індексується на інфляцію)
+    const realMonthlyPension = war.initialPension;
+
+    const npvWarsaw = realMonthlyPension * 12 * yearsAfter;
+
+    const ratio = npvPrivate / npvWarsaw;
+
+    let color;
+    let txt;
+
+    if (ratio > 1.15) {
+      color = '#1f4e79';
+      txt = 'N';
+    } else if (ratio < 0.85) {
+      color = '#7a1f1f';
+      txt = 'W';
+    } else {
+      color = '#999';
+      txt = '≈';
+    }
+
+    const cell = document.createElement('div');
+    cell.className = 'heat-cell';
+    cell.style.backgroundColor = color;
+    cell.textContent = txt;
+    hm.appendChild(cell);
+  });
+});
     }
 
     window.onload = runSimulation;
