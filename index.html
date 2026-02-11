@@ -1,300 +1,236 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Geopolitical Pension Simulator 2.0</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geopolitical Pension Simulator 2.1</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --nato-bg: #dceeff;
-      --nato-accent: #1f4e79;
-      --warsaw-bg: #ffe3e3;
-      --warsaw-accent: #7a1f1f;
+      --nato: #1f4e79;
+      --warsaw: #7a1f1f;
+      --nato-light: #dceeff;
+      --warsaw-light: #ffe3e3;
     }
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #f8f9fa;
-      color: #222;
-    }
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+    body { margin:0; font-family: system-ui, -apple-system, sans-serif; background:#f5f7fa; color:#222; line-height:1.5; }
+    .container { max-width:1480px; margin:0 auto; padding:20px; }
     header {
-      text-align: center;
-      padding: 20px 0;
-      background: linear-gradient(135deg, #1f4e79, #7a1f1f);
-      color: white;
-      border-radius: 12px;
-      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--nato), var(--warsaw));
+      color:white; padding:30px; border-radius:16px; text-align:center; margin-bottom:30px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
-    .main-grid {
+    .grid {
       display: grid;
-      grid-template-columns: 280px 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: 300px 1fr 1fr;
+      gap: 24px;
     }
-    .input-panel {
+    .card {
       background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-    .column {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      position: relative;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+      padding: 24px;
       overflow: hidden;
     }
-    .nato { background: var(--nato-bg); border-top: 6px solid var(--nato-accent); }
-    .warsaw { background: var(--warsaw-bg); border-top: 6px solid var(--warsaw-accent); }
-
-    .column::before {
-      content: attr(data-watermark);
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-20deg);
-      font-size: 80px;
-      font-weight: 900;
-      opacity: 0.04;
-      pointer-events: none;
-      white-space: nowrap;
-      color: #000;
-    }
-    .nato::before { content: "NATO"; }
-    .warsaw::before { content: "WARSAW"; }
-
-    h2 { margin-top: 0; }
-    label { display: block; margin: 12px 0 4px; font-weight: 600; }
-    input, select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+    .nato-card { border-top: 6px solid var(--nato); background: var(--nato-light); }
+    .warsaw-card { border-top: 6px solid var(--warsaw); background: var(--warsaw-light); }
+    .input-group { margin-bottom: 16px; }
+    label { display:block; margin-bottom:6px; font-weight:600; }
+    input[type="range"] { width:100%; }
+    .value { font-weight:bold; color:#444; }
     button {
-      margin-top: 20px;
-      width: 100%;
-      padding: 12px;
-      background: #1f4e79;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
+      width:100%; padding:14px; background:var(--nato); color:white; border:none;
+      border-radius:12px; font-size:17px; cursor:pointer; margin-top:10px;
     }
-    button:hover { background: #0f3a5f; }
-
-    .results {
-      margin-top: 20px;
-      padding: 15px;
-      background: rgba(255,255,255,0.7);
-      border-radius: 8px;
-      font-size: 15px;
+    button:hover { background:#0f3a5f; }
+    .results { margin-top:20px; font-size:15px; background:rgba(255,255,255,0.6); padding:16px; border-radius:12px; }
+    .comparative { grid-column:1/-1; }
+    .watermark {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-18deg);
+      font-size:92px; font-weight:900; opacity:0.035; pointer-events:none; color:#000;
     }
-
-    .comparative {
-      margin-top: 30px;
-      grid-column: 1 / -1;
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-
-    .heatmap-grid {
-      display: grid;
+    .section-title { margin:30px 0 12px; font-size:1.35rem; }
+    canvas { max-height:260px; }
+    .heatmap {
+      display:grid;
       grid-template-columns: repeat(10, 1fr);
-      gap: 2px;
-      margin-top: 15px;
+      gap:3px;
+      margin-top:12px;
     }
     .heat-cell {
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: white;
-      font-weight: 600;
-      border-radius: 4px;
+      height:42px; display:flex; align-items:center; justify-content:center;
+      font-size:13px; font-weight:700; color:white; border-radius:6px;
     }
-
-    @media (max-width: 1100px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Geopolitical Pension Simulator 2.0</h1>
-      <p>Порівняння приватної накопичувальної (NATO) та солідарної (Warsaw) пенсійних систем України</p>
+      <h1>Geopolitical Pension Simulator 2.1</h1>
+      <p>Порівняння приватної накопичувальної (NATO) та солідарної (Warsaw) пенсійних систем</p>
     </header>
 
-    <div class="main-grid">
-      <!-- INPUT PANEL -->
-      <div class="input-panel">
-        <h2>Параметри симуляції</h2>
-        
-        <label>Початковий вік</label>
-        <input type="number" id="startAge" value="25" />
-
-        <label>Пенсійний вік</label>
-        <input type="number" id="retAge" value="62" />
-
-        <label>Початкова місячна зарплата (грн)</label>
-        <input type="number" id="salary" value="25000" />
-
-        <label>Річний ріст зарплати (%)</label>
-        <input type="number" step="0.1" id="salaryGrowth" value="5" />
-
-        <label>Інфляція (% на рік)</label>
-        <input type="number" step="0.1" id="inflation" value="6.5" />
-
-        <label>ЄСВ / внесок (%)</label>
-        <input type="number" step="0.1" id="contribution" value="22" />
-
-        <label>Очікувана інвестиційна дохідність (%)</label>
-        <input type="number" step="0.1" id="return" value="8.5" />
-
-        <label>Очікувана тривалість життя (років)</label>
-        <input type="number" id="lifeExpectancy" value="82" />
-
-        <label>Рік шоку (від поточного віку)</label>
-        <input type="number" id="shockYear" value="15" />
-
-        <label>Сила шоку (% падіння)</label>
-        <input type="number" id="shockStrength" value="45" />
-
+    <div class="grid">
+      <!-- Inputs -->
+      <div class="card">
+        <h2>Параметри</h2>
+        <div class="input-group">
+          <label>Початковий вік <span class="value" id="v1">25</span></label>
+          <input type="range" min="20" max="40" value="25" id="startAge" oninput="document.getElementById('v1').textContent=this.value">
+        </div>
+        <div class="input-group">
+          <label>Пенсійний вік <span class="value" id="v2">62</span></label>
+          <input type="range" min="58" max="70" value="62" id="retAge" oninput="document.getElementById('v2').textContent=this.value">
+        </div>
+        <div class="input-group">
+          <label>Місячна зарплата зараз (грн) <span class="value" id="v3">25000</span></label>
+          <input type="range" min="10000" max="80000" step="500" value="25000" id="salary" oninput="document.getElementById('v3').textContent=this.value">
+        </div>
+        <div class="input-group">
+          <label>Ріст зарплати (%) <span class="value" id="v4">5</span></label>
+          <input type="range" min="0" max="12" step="0.2" value="5" id="salaryGrowth" oninput="document.getElementById('v4').textContent=this.value">
+        </div>
+        <div class="input-group">
+          <label>Інфляція (%) <span class="value" id="v5">6.5</span></label>
+          <input type="range" min="2" max="15" step="0.2" value="6.5" id="inflation" oninput="document.getElementById('v5').textContent=this.value">
+        </div>
+        <div class="input-group">
+          <label>Внесок ЄСВ (%) <span class="value" id="v6">22</span></label>
+          <input type="range" min="18" max="36" step="0.5" value="22" id="contribution" oninput="document.getElementById('v6').textContent=this.value">
+        </div>
+        <div class="input-group">
+          <label>Інвестиційна дохідність (%) <span class="value" id="v7">8.5</span></label>
+          <input type="range" min="3" max="14" step="0.2" value="8.5" id="return" oninput="document.getElementById('v7').textContent=this.value">
+        </div>
+        <div class="input-group">
+          <label>Очікувана тривалість життя <span class="value" id="v8">82</span></label>
+          <input type="range" min="70" max="95" value="82" id="lifeExpectancy" oninput="document.getElementById('v8').textContent=this.value">
+        </div>
+        <div class="input-group">
+          <label>Середня ЗП по країні зараз (грн) <span class="value" id="v9">22000</span></label>
+          <input type="range" min="15000" max="35000" step="500" value="22000" id="avgSalaryCountry" oninput="document.getElementById('v9').textContent=this.value">
+        </div>
         <button onclick="runSimulation()">Запустити симуляцію</button>
       </div>
 
-      <!-- NATO COLUMN -->
-      <div class="column nato" data-watermark="NATO">
-        <h2 style="color:var(--nato-accent)">NATO — Приватна накопичувальна модель</h2>
-        <canvas id="natoChart" height="220"></canvas>
+      <!-- NATO -->
+      <div class="card nato-card" style="position:relative;">
+        <div class="watermark">NATO</div>
+        <h2 style="color:var(--nato)">Приватна накопичувальна модель</h2>
+        <canvas id="natoChart"></canvas>
         <div class="results" id="natoResults"></div>
       </div>
 
-      <!-- WARSAW COLUMN -->
-      <div class="column warsaw" data-watermark="WARSAW">
-        <h2 style="color:var(--warsaw-accent)">Warsaw — Солідарна державна модель</h2>
-        <canvas id="warsawChart" height="220"></canvas>
+      <!-- Warsaw -->
+      <div class="card warsaw-card" style="position:relative;">
+        <div class="watermark">WARSAW</div>
+        <h2 style="color:var(--warsaw)">Солідарна державна модель</h2>
+        <canvas id="warsawChart"></canvas>
         <div class="results" id="warsawResults"></div>
       </div>
     </div>
 
-    <!-- COMPARATIVE -->
-    <div class="comparative">
-      <h2>Порівняльна аналітика</h2>
-      
-      <canvas id="comparisonChart" height="100"></canvas>
+    <!-- Comparative -->
+    <div class="comparative card">
+      <h2 class="section-title">Порівняльна аналітика</h2>
+      <canvas id="comparisonChart" height="110"></canvas>
 
-      <h3 style="margin-top:30px">Monte Carlo — розподіл фінального капіталу/пенсії (1000 симуляцій)</h3>
-      <canvas id="monteCarloChart" height="90"></canvas>
+      <h3 class="section-title">Monte Carlo (1000 симуляцій) — розподіл фінального багатства</h3>
+      <canvas id="monteCarloChart" height="110"></canvas>
 
-      <h3 style="margin-top:30px">Heatmap вигідності: Дохідність × Тривалість життя</h3>
-      <div id="heatmap" class="heatmap-grid"></div>
+      <h3 class="section-title">Крива виживання (Gompertz–Makeham)</h3>
+      <canvas id="survivalChart" height="110"></canvas>
+
+      <h3 class="section-title">Heatmap вигідності (Дохідність × Тривалість життя)</h3>
+      <div id="heatmap" class="heatmap"></div>
     </div>
   </div>
 
   <script>
-    let natoChart, warsawChart, comparisonChart, monteCarloChart;
+    let charts = {};
 
     function calculatePrivate(inputs) {
       let capital = 0;
       let salary = inputs.salary * 12;
       const yearsToRet = inputs.retAge - inputs.startAge;
-      
+
       for (let y = 0; y < yearsToRet; y++) {
-        const contribution = salary * (inputs.contribution / 100);
-        capital = capital * (1 + inputs.return/100) + contribution;
-        
-        // Шок
-        if (y === inputs.shockYear) {
-          capital *= (1 - inputs.shockStrength/100);
-        }
-        
+        capital = capital * (1 + inputs.return/100) + salary * (inputs.contribution/100);
+        if (y === inputs.shockYear) capital *= (1 - inputs.shockStrength/100);
         salary *= (1 + inputs.salaryGrowth/100);
       }
-
-      const realReturn = (1 + inputs.return/100) / (1 + inputs.inflation/100) - 1;
-      const yearsAfter = inputs.lifeExpectancy - inputs.retAge;
-      
-      // Аннуїтетна виплата
-      const annualPension = capital * (realReturn / (1 - Math.pow(1 + realReturn, -yearsAfter)));
-      
-      return {
-        finalCapital: Math.round(capital),
-        annualPension: Math.round(annualPension),
-        totalReceived: Math.round(annualPension * yearsAfter),
-        inheritance: Math.round(capital * 0.3) // спрощено
-      };
+      return { finalCapital: Math.round(capital) };
     }
 
     function calculateWarsaw(inputs) {
       const yearsService = inputs.retAge - inputs.startAge;
-      const Ks = yearsService * 0.01;                    // коефіцієнт стажу
-      const Kz = 1.0;                                    // припускаємо середню зарплату
-      const Zs = inputs.salary * 12 * Math.pow(1 + inputs.salaryGrowth/100, yearsService); // середня зарплата країни на момент виходу на пенсію
-      
-      let pension = Zs * Kz * Ks;                        // номінальна пенсія на момент призначення
-      
-      // Індексація пенсії інфляцією
+      const Ks = Math.min(yearsService * 0.01, 0.45);
+      const Kz = 1.0;
+
+      // Зс на момент пенсії
+      const Zs = inputs.avgSalaryCountry * 12 * Math.pow(1 + inputs.salaryGrowth/100 * 0.8, yearsService);
+
+      const initialPension = Zs * Kz * Ks;   // місячна
+
       const yearsAfter = inputs.lifeExpectancy - inputs.retAge;
-      let totalReceived = 0;
-      let currentPension = pension;
-      
+      let pensions = [];
+      let current = initialPension;
+      let total = 0;
+
       for (let i = 0; i < yearsAfter; i++) {
-        totalReceived += currentPension;
-        currentPension *= (1 + inputs.inflation/100);
+        pensions.push(Math.round(current));
+        total += current;
+        current *= (1 + inputs.inflation/100);
       }
-      
-      // Шок (державна система теж страждає, але менше)
-      if (inputs.shockYear < yearsService) {
-        totalReceived *= (1 - inputs.shockStrength/100 * 0.6);
-      }
-      
+
       return {
-        annualPension: Math.round(pension),
-        totalReceived: Math.round(totalReceived),
-        inheritance: 0
+        initialPension: Math.round(initialPension),
+        pensionsAfterRet: pensions,
+        totalReceived: Math.round(total)
       };
     }
 
-    function generateSurvivalCurve(startAge, lifeExpectancy) {
-      const data = [];
-      for (let age = startAge; age <= 100; age++) {
-        // Gompertz–Makeham approximation
-        const mortality = 0.0001 + 0.00008 * Math.pow(1.085, age);
-        const survival = Math.exp(-mortality * (age - startAge)) * 100;
-        data.push({age, survival: Math.max(0, Math.min(100, survival))});
+    function runMonteCarlo(inputs) {
+      const capitals = [];
+      for (let i = 0; i < 1000; i++) {
+        const noisy = {...inputs};
+        noisy.return = inputs.return + (Math.random()*5 - 2.5);
+        noisy.inflation = inputs.inflation + (Math.random()*3 - 1.5);
+        const res = calculatePrivate(noisy);
+        capitals.push(res.finalCapital);
       }
-      return data;
+      return capitals;
+    }
+
+    function createHistogramData(data, bins = 25) {
+      const min = Math.min(...data);
+      const max = Math.max(...data);
+      const binSize = (max - min) / bins;
+      const hist = new Array(bins).fill(0);
+      data.forEach(val => {
+        let bin = Math.floor((val - min) / binSize);
+        if (bin >= bins) bin = bins-1;
+        hist[bin]++;
+      });
+      return { labels: hist.map((_,i) => Math.round(min + i*binSize)), values: hist };
     }
 
     function createHeatmap(inputs) {
       const container = document.getElementById('heatmap');
       container.innerHTML = '';
-      
-      const returns = [3,4,5,6,7,8,9,10,11,12];
-      const lives = [70,73,76,79,82,85,88,91,94,97];
-      
+      const returns = [4,5,6,7,8,9,10,11,12,13];
+      const lives = [72,75,78,81,84,87,90,93,96,99];
+
       returns.forEach(r => {
         lives.forEach(l => {
-          const testInputs = {...inputs, return: r, lifeExpectancy: l};
-          const priv = calculatePrivate(testInputs);
-          const war = calculateWarsaw(testInputs);
-          
-          const diff = priv.totalReceived - war.totalReceived;
-          let color, text;
-          
-          if (diff > 500000) { color = '#1f4e79'; text = 'NATO'; }
-          else if (diff > 100000) { color = '#5a8fd4'; text = 'NATO'; }
-          else if (diff > -100000) { color = '#ddd'; text = '='; }
-          else if (diff > -500000) { color = '#c95a5a'; text = 'WAR'; }
-          else { color = '#7a1f1f'; text = 'WAR'; }
-          
+          const test = {...inputs, return: r, lifeExpectancy: l};
+          const priv = calculatePrivate(test).finalCapital;
+          const war = calculateWarsaw(test).totalReceived;
+          const ratio = priv / (war || 1);
+
+          let color = ratio > 1.4 ? '#1f4e79' : ratio > 1.1 ? '#4a8fd4' : ratio > 0.9 ? '#aaa' : ratio > 0.7 ? '#c95a5a' : '#7a1f1f';
+          let text = ratio > 1.2 ? 'N' : ratio < 0.8 ? 'W' : '=';
+
           const cell = document.createElement('div');
           cell.className = 'heat-cell';
           cell.style.backgroundColor = color;
@@ -302,21 +238,6 @@
           container.appendChild(cell);
         });
       });
-    }
-
-    function runMonteCarlo(inputs, iterations = 1000) {
-      const results = [];
-      for (let i = 0; i < iterations; i++) {
-        const noisy = {
-          ...inputs,
-          return: inputs.return + (Math.random() * 6 - 3),
-          inflation: inputs.inflation + (Math.random() * 4 - 2),
-          lifeExpectancy: Math.round(inputs.lifeExpectancy + (Math.random() * 8 - 4))
-        };
-        const priv = calculatePrivate(noisy);
-        results.push(priv.finalCapital);
-      }
-      return results;
     }
 
     function runSimulation() {
@@ -329,77 +250,64 @@
         contribution: +document.getElementById('contribution').value,
         return: +document.getElementById('return').value,
         lifeExpectancy: +document.getElementById('lifeExpectancy').value,
-        shockYear: +document.getElementById('shockYear').value,
-        shockStrength: +document.getElementById('shockStrength').value
+        avgSalaryCountry: +document.getElementById('avgSalaryCountry').value,
+        shockYear: 12,
+        shockStrength: 40
       };
 
-      const privateRes = calculatePrivate(inputs);
-      const warsawRes = calculateWarsaw(inputs);
+      const priv = calculatePrivate(inputs);
+      const war = calculateWarsaw(inputs);
 
-      // NATO Results
+      // NATO results
       document.getElementById('natoResults').innerHTML = `
-        <strong>Фінальний капітал:</strong> ${privateRes.finalCapital.toLocaleString('uk-UA')} грн<br>
-        <strong>Річна пенсія (аннуїтет):</strong> ${privateRes.annualPension.toLocaleString('uk-UA')} грн<br>
-        <strong>Загалом отримано:</strong> ${privateRes.totalReceived.toLocaleString('uk-UA')} грн<br>
-        <strong>Спадщина (приблизно):</strong> ${privateRes.inheritance.toLocaleString('uk-UA')} грн
+        Фінальний капітал: <strong>${priv.finalCapital.toLocaleString('uk-UA')} грн</strong><br>
+        Очікувана щорічна виплата: <strong>${Math.round(priv.finalCapital * 0.055).toLocaleString('uk-UA')} грн</strong>
       `;
 
-      // Warsaw Results
+      // Warsaw results
       document.getElementById('warsawResults').innerHTML = `
-        <strong>Початкова пенсія:</strong> ${warsawRes.annualPension.toLocaleString('uk-UA')} грн<br>
-        <strong>Загалом отримано (з індексацією):</strong> ${warsawRes.totalReceived.toLocaleString('uk-UA')} грн<br>
-        <strong>Спадщина:</strong> 0 грн
+        Початкова пенсія: <strong>${war.initialPension.toLocaleString('uk-UA')} грн/міс</strong><br>
+        Загалом за життя: <strong>${war.totalReceived.toLocaleString('uk-UA')} грн</strong>
       `;
 
       // Графіки
-      const years = Array.from({length: inputs.retAge - inputs.startAge + 1}, (_, i) => inputs.startAge + i);
-      
-      if (natoChart) natoChart.destroy();
-      natoChart = new Chart(document.getElementById('natoChart'), {
+      const yearsAfter = Array.from({length: war.pensionsAfterRet.length}, (_,i) => inputs.retAge + i);
+
+      // Warsaw chart — тільки після пенсії
+      if (charts.warsaw) charts.warsaw.destroy();
+      charts.warsaw = new Chart(document.getElementById('warsawChart'), {
         type: 'line',
-        data: { labels: years, datasets: [{ label: 'Накопичений капітал', data: Array(years.length).fill(0).map((_,i) => i*privateRes.finalCapital/years.length), borderColor: '#1f4e79', tension: 0.4 }] },
-        options: { plugins: { legend: { display: false } } }
-      });
-
-      if (warsawChart) warsawChart.destroy();
-      warsawChart = new Chart(document.getElementById('warsawChart'), {
-        type: 'bar',
-        data: { labels: years, datasets: [{ label: 'Пенсія (індексована)', data: Array(years.length).fill(warsawRes.annualPension), backgroundColor: '#7a1f1f' }] },
-        options: { plugins: { legend: { display: false } } }
-      });
-
-      // Порівняння
-      if (comparisonChart) comparisonChart.destroy();
-      comparisonChart = new Chart(document.getElementById('comparisonChart'), {
-        type: 'bar',
         data: {
-          labels: ['Загалом отримано', 'Спадщина'],
-          datasets: [
-            { label: 'NATO', data: [privateRes.totalReceived, privateRes.inheritance], backgroundColor: '#1f4e79' },
-            { label: 'Warsaw', data: [warsawRes.totalReceived, 0], backgroundColor: '#7a1f1f' }
-          ]
-        }
+          labels: yearsAfter,
+          datasets: [{ label: 'Щорічна пенсія (з індексацією)', data: war.pensionsAfterRet, borderColor: '#7a1f1f', tension: 0.3 }]
+        },
+        options: { plugins: { legend: { display: true } } }
       });
 
       // Monte Carlo
-      const mcResults = runMonteCarlo(inputs);
-      const mcLabels = Array.from({length: 20}, (_,i) => Math.round(Math.min(...mcResults) + (Math.max(...mcResults)-Math.min(...mcResults))/20 * i));
-      
-      if (monteCarloChart) monteCarloChart.destroy();
-      monteCarloChart = new Chart(document.getElementById('monteCarloChart'), {
-        type: 'histogram',
-        data: { datasets: [{ label: 'Monte Carlo (NATO)', data: mcResults, backgroundColor: '#1f4e79' }] },
-        options: { scales: { x: { type: 'linear', bins: 30 } } }
+      const mcData = runMonteCarlo(inputs);
+      const hist = createHistogramData(mcData);
+      if (charts.monte) charts.monte.destroy();
+      charts.monte = new Chart(document.getElementById('monteCarloChart'), {
+        type: 'bar',
+        data: { labels: hist.labels, datasets: [{ label: 'Кількість симуляцій', data: hist.values, backgroundColor: '#1f4e79' }] },
+        options: { scales: { x: { title: { display: true, text: 'Фінальний капітал (грн)' } } } }
       });
 
       // Heatmap
       createHeatmap(inputs);
+
+      // Survival curve (приклад)
+      if (charts.survival) charts.survival.destroy();
+      const ages = Array.from({length: 40}, (_,i) => inputs.retAge + i);
+      const survival = ages.map(age => Math.max(5, 100 * Math.exp(-0.00008 * Math.pow(1.09, age - 30))));
+      charts.survival = new Chart(document.getElementById('survivalChart'), {
+        type: 'line',
+        data: { labels: ages, datasets: [{ label: 'Ймовірність дожити (%)', data: survival, borderColor: '#333', tension: 0.4 }] }
+      });
     }
 
-    // Автозапуск при завантаженні
-    window.onload = () => {
-      runSimulation();
-    };
+    window.onload = runSimulation;
   </script>
 </body>
 </html>
