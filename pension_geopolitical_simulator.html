@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pension System Geopolitical Simulator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body { font-family: Arial; margin:0; background:#f4f4f4; }
+.container { display:flex; }
+.left { width:50%; background:#dbeeff; padding:20px; }
+.right { width:50%; background:#ffe0e0; padding:20px; }
+.controls { padding:20px; background:white; }
+canvas { background:white; margin-top:20px; }
+h2 { margin-top:0; }
+.watermark {
+    position:absolute;
+    font-size:120px;
+    opacity:0.05;
+    top:40%;
+    width:50%;
+    text-align:center;
+    pointer-events:none;
+}
+.blueMark { left:0; }
+.redMark { right:0; }
+</style>
+</head>
+
+<body>
+
+<div class="controls">
+<h1>Pension Geopolitical Simulator</h1>
+
+Start salary: <input type="number" id="salary" value="20000"><br>
+Years of work: <input type="number" id="years" value="37"><br>
+Salary growth (%): <input type="number" id="growth" value="5"><br>
+Contribution (%): <input type="number" id="contrib" value="22"><br>
+Return (%): <input type="number" id="return" value="5"><br>
+Inflation (%): <input type="number" id="inflation" value="7"><br>
+Retirement years: <input type="number" id="retireYears" value="18"><br>
+Survival probability (%): <input type="number" id="survival" value="70"><br>
+Shock year (0=none): <input type="number" id="shockYear" value="0"><br>
+Shock impact (%): <input type="number" id="shockImpact" value="-30"><br>
+
+<button onclick="simulate()">Simulate</button>
+</div>
+
+<div class="container">
+<div class="left">
+<div class="watermark blueMark">NATO</div>
+<h2>Insurance Model</h2>
+<p id="privateResults"></p>
+<canvas id="privateChart"></canvas>
+</div>
+
+<div class="right">
+<div class="watermark redMark">Warsaw</div>
+<h2>Solidarity Model</h2>
+<p id="solidarityResults"></p>
+<canvas id="compareChart"></canvas>
+</div>
+</div>
+
+<script>
+function simulate(){
+
+let salary = parseFloat(document.getElementById("salary").value);
+let years = parseInt(document.getElementById("years").value);
+let growth = parseFloat(document.getElementById("growth").value)/100;
+let contrib = parseFloat(document.getElementById("contrib").value)/100;
+let ret = parseFloat(document.getElementById("return").value)/100;
+let inflation = parseFloat(document.getElementById("inflation").value)/100;
+let retireYears = parseInt(document.getElementById("retireYears").value);
+let survival = parseFloat(document.getElementById("survival").value)/100;
+let shockYear = parseInt(document.getElementById("shockYear").value);
+let shockImpact = parseFloat(document.getElementById("shockImpact").value)/100;
+
+let privateAccount = 0;
+let salaryHistory = [];
+let accountHistory = [];
+
+for(let y=0; y<years; y++){
+    let annual = salary*12;
+    let contribution = annual*contrib;
+    privateAccount = (privateAccount + contribution)*(1+ret);
+
+    if(shockYear>0 && y==shockYear){
+        privateAccount *= (1+shockImpact);
+    }
+
+    salaryHistory.push(salary);
+    accountHistory.push(privateAccount);
+    salary *= (1+growth);
+}
+
+let finalSalary = salary/(1+growth);
+let solidarityMonthly = finalSalary*0.4;
+let privateMonthly = privateAccount/(retireYears*12);
+
+document.getElementById("privateResults").innerHTML =
+"Capital: "+Math.round(privateAccount)+"<br>Monthly: "+Math.round(privateMonthly);
+
+document.getElementById("solidarityResults").innerHTML =
+"Monthly pension: "+Math.round(solidarityMonthly);
+
+// Private chart
+new Chart(document.getElementById("privateChart"),{
+type:"line",
+data:{
+labels:[...Array(years).keys()],
+datasets:[{label:"Private Account",data:accountHistory}]
+}
+});
+
+// Compare chart
+new Chart(document.getElementById("compareChart"),{
+type:"bar",
+data:{
+labels:["Private","Solidarity"],
+datasets:[{
+label:"Monthly Pension",
+data:[privateMonthly,solidarityMonthly]
+}]
+}
+});
+
+}
+</script>
+
+</body>
+</html>
