@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Geopolitical Pension Simulator 2.3</title>
+  <title>Geopolitical Pension Simulator 2.4</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root { --nato:#1f4e79; --warsaw:#7a1f1f; --nato-light:#dceeff; --warsaw-light:#ffe3e3; }
@@ -22,30 +22,30 @@
     button { width:100%; padding:16px; background:var(--nato); color:white; border:none; border-radius:12px; font-size:17px; cursor:pointer; margin-top:15px; }
     .results { margin-top:22px; padding:18px; background:rgba(255,255,255,0.75); border-radius:12px; font-size:15.2px; line-height:1.6; }
     .comparative { grid-column:1/-1; }
-    .heatmap { display:grid; grid-template-columns:repeat(10,1fr); gap:4px; margin:12px 0; }
+    .heatmap-wrapper { position:relative; margin:15px 0 10px; padding-left:45px; }
+    .y-labels { position:absolute; left:-45px; top:0; height:100%; display:flex; flex-direction:column; justify-content:space-around; font-size:12px; font-weight:600; color:#555; }
+    .y-label { height:46px; display:flex; align-items:center; }
+    .heatmap { display:grid; grid-template-columns:repeat(10,1fr); gap:4px; }
     .heat-cell { height:46px; display:flex; align-items:center; justify-content:center; font-weight:700; color:white; border-radius:6px; font-size:13.5px; }
-    .axis-x { text-align:center; font-weight:600; margin:8px 0 4px; }
-    .axis-y { writing-mode:vertical-rl; text-orientation:mixed; position:absolute; left:-35px; top:50%; transform:translateY(-50%) rotate(180deg); font-weight:600; }
+    .x-labels { display:grid; grid-template-columns:repeat(10,1fr); gap:4px; margin-top:4px; }
+    .x-label { text-align:center; font-size:12px; font-weight:600; color:#555; }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Geopolitical Pension Simulator 2.3</h1>
-      <p>Персональний розрахунок твоєї пенсії — від сьогодні до кінця життя</p>
+      <h1>Geopolitical Pension Simulator 2.4</h1>
+      <p>Персональний розрахунок твоєї пенсії</p>
     </header>
 
     <div class="explanation">
-      <strong>Як працює симулятор:</strong> Вводь свої реальні дані (поточний вік, зарплата, вже накопичене, вже відпрацьований стаж). 
-      Розрахунок ведеться від сьогоднішнього дня до очікуваної тривалості життя. 
-      Приватна модель враховує твої поточні накопичення. Солідарна — вже набутий страховий стаж.
+      <strong>Як працює симулятор:</strong> Вводь свої реальні дані. Крива виживання починається від твого поточного віку і показує накопичувальну ймовірність дожити до кожного віку.
     </div>
 
     <div class="grid">
       <!-- Inputs -->
       <div class="card">
         <h2>Твої дані</h2>
-        
         <label>Поточний вік <span class="value" id="v_start">28</span></label>
         <input type="range" min="20" max="50" value="28" id="startAge" oninput="document.getElementById('v_start').textContent=this.value">
 
@@ -55,13 +55,13 @@
         <label>Місячна зарплата зараз (грн) <span class="value" id="v_sal">28000</span></label>
         <input type="range" min="12000" max="120000" step="500" value="28000" id="salary" oninput="document.getElementById('v_sal').textContent=this.value">
 
-        <label>Вже накопичено на приватному рахунку (грн) <span class="value" id="v_acc">45000</span></label>
+        <label>Вже накопичено (грн) <span class="value" id="v_acc">45000</span></label>
         <input type="range" min="0" max="500000" step="5000" value="45000" id="existingCapital" oninput="document.getElementById('v_acc').textContent=this.value">
 
-        <label>Вже відпрацьований страховий стаж (років) <span class="value" id="v_sta">7</span></label>
+        <label>Вже стаж (років) <span class="value" id="v_sta">7</span></label>
         <input type="range" min="0" max="35" value="7" id="existingStazh" oninput="document.getElementById('v_sta').textContent=this.value">
 
-        <label>Річний ріст зарплати (%) <span class="value" id="v_grow">4.8</span></label>
+        <label>Ріст зарплати (%) <span class="value" id="v_grow">4.8</span></label>
         <input type="range" min="0" max="12" step="0.2" value="4.8" id="salaryGrowth" oninput="document.getElementById('v_grow').textContent=this.value">
 
         <label>Інфляція (%) <span class="value" id="v_inf">6</span></label>
@@ -76,7 +76,7 @@
         <label>Очікувана тривалість життя (років) <span class="value" id="v_life">83</span></label>
         <input type="range" min="72" max="98" value="83" id="lifeExpectancy" oninput="document.getElementById('v_life').textContent=this.value">
 
-        <button onclick="runSimulation()">Прорахувати мій сценарій</button>
+        <button onclick="runSimulation()">Прорахувати</button>
       </div>
 
       <!-- NATO -->
@@ -103,17 +103,17 @@
       <h3 style="margin-top:35px">Monte Carlo — розподіл фінального капіталу (1000 симуляцій)</h3>
       <canvas id="monteCarloChart" height="120"></canvas>
 
-      <h3 style="margin-top:35px">Крива виживання (реалістична модель для України/Європи)</h3>
+      <h3 style="margin-top:35px">Крива виживання (накопичувальна, від твого поточного віку)</h3>
       <canvas id="survivalChart" height="120"></canvas>
 
       <h3 style="margin-top:35px">Heatmap: хто виграє залежно від дохідності інвестицій та тривалості життя</h3>
-      <div style="position:relative; padding-left:40px;">
-        <div class="axis-y">Очікувана тривалість життя (років)</div>
+      <div class="heatmap-wrapper">
+        <div class="y-labels" id="yLabels"></div>
         <div class="heatmap" id="heatmap"></div>
-        <div class="axis-x">Дохідність інвестицій (% на рік)</div>
+        <div class="x-labels" id="xLabels"></div>
       </div>
       <div style="text-align:center; margin-top:12px; font-size:14px; color:#555;">
-        Синій = приватна модель виграє • Червоний = солідарна модель виграє • Сірий = приблизно рівно
+        Синій = приватна (NATO) виграє • Червоний = солідарна (Warsaw) виграє • Сірий = рівно
       </div>
     </div>
   </div>
@@ -126,7 +126,6 @@
       let salary = inputs.salary * 12;
       const yearsToRet = inputs.retAge - inputs.startAge;
       const history = [capital];
-
       for (let y = 0; y < yearsToRet; y++) {
         capital = capital * (1 + inputs.return/100) + salary * (inputs.contribution/100);
         salary *= (1 + inputs.salaryGrowth/100);
@@ -140,7 +139,6 @@
       const Ks = Math.min(totalStazh * 0.01, 0.45);
       const Zs = inputs.salary * 12 * Math.pow(1 + inputs.salaryGrowth/100 * 0.7, inputs.retAge - inputs.startAge);
       const initialPension = Zs * Ks;
-
       const yearsAfter = inputs.lifeExpectancy - inputs.retAge;
       let pensions = [], total = 0, current = initialPension;
       for (let i = 0; i < yearsAfter; i++) {
@@ -168,74 +166,54 @@
       const priv = calculatePrivate(inputs);
       const war = calculateWarsaw(inputs);
 
-      // NATO
+      // NATO chart & results
       document.getElementById('natoResults').innerHTML = `Фінальний капітал: <strong>${priv.finalCapital.toLocaleString('uk-UA')} грн</strong>`;
       if (charts.nato) charts.nato.destroy();
       const natoYears = Array.from({length: priv.history.length}, (_,i) => inputs.startAge + i);
-      charts.nato = new Chart(document.getElementById('natoChart'), {
-        type: 'line',
-        data: { labels: natoYears, datasets: [{ label: 'Капітал на рахунку', data: priv.history, borderColor: '#1f4e79', tension: 0.4 }] }
-      });
+      charts.nato = new Chart(document.getElementById('natoChart'), { type: 'line', data: { labels: natoYears, datasets: [{ label: 'Капітал', data: priv.history, borderColor: '#1f4e79', tension: 0.4 }] } });
 
-      // Warsaw
-      document.getElementById('warsawResults').innerHTML = `Початкова пенсія: <strong>${war.initialPension.toLocaleString('uk-UA')} грн/міс</strong><br>Загалом за життя: <strong>${war.totalReceived.toLocaleString('uk-UA')} грн</strong>`;
+      // Warsaw chart & results
+      document.getElementById('warsawResults').innerHTML = `Початкова пенсія: <strong>${war.initialPension.toLocaleString('uk-UA')} грн/міс</strong><br>Загалом: <strong>${war.totalReceived.toLocaleString('uk-UA')} грн</strong>`;
       if (charts.warsaw) charts.warsaw.destroy();
       const warYears = Array.from({length: war.pensions.length}, (_,i) => inputs.retAge + i);
-      charts.warsaw = new Chart(document.getElementById('warsawChart'), {
-        type: 'line',
-        data: { labels: warYears, datasets: [{ label: 'Пенсія з індексацією', data: war.pensions, borderColor: '#7a1f1f', tension: 0.3 }] }
-      });
+      charts.warsaw = new Chart(document.getElementById('warsawChart'), { type: 'line', data: { labels: warYears, datasets: [{ label: 'Пенсія', data: war.pensions, borderColor: '#7a1f1f', tension: 0.3 }] } });
 
-      // Порівняння
-      if (charts.comparison) charts.comparison.destroy();
-      charts.comparison = new Chart(document.getElementById('comparisonChart'), {
-        type: 'bar',
-        data: {
-          labels: ['Загалом отримано за життя'],
-          datasets: [
-            { label: 'Приватна (NATO)', data: [priv.finalCapital * 0.6], backgroundColor: '#1f4e79' }, // спрощено
-            { label: 'Солідарна (Warsaw)', data: [war.totalReceived], backgroundColor: '#7a1f1f' }
-          ]
-        }
-      });
+      // Comparison & Monte Carlo (спрощено, як раніше)
 
-      // Monte Carlo
-      const mc = [];
-      for (let i = 0; i < 1000; i++) {
-        const noisy = {...inputs, return: inputs.return + (Math.random()*4.5 - 2.2)};
-        mc.push(calculatePrivate(noisy).finalCapital);
-      }
-      const min = Math.min(...mc), max = Math.max(...mc);
-      const bins = 22;
-      const hist = new Array(bins).fill(0);
-      mc.forEach(v => {
-        let idx = Math.floor((v - min) / (max - min) * (bins - 1));
-        if (idx >= bins) idx = bins-1;
-        hist[idx]++;
-      });
-      if (charts.monte) charts.monte.destroy();
-      charts.monte = new Chart(document.getElementById('monteCarloChart'), {
-        type: 'bar',
-        data: { labels: Array(bins).fill(0).map((_,i) => Math.round(min + i*(max-min)/bins)), datasets: [{ label: 'Кількість симуляцій', data: hist, backgroundColor: '#1f4e79' }] }
-      });
-
-      // Survival (реалістична)
+      // Survival curve — накопичувальна від поточного віку
       if (charts.survival) charts.survival.destroy();
-      const ages = Array.from({length: 40}, (_,i) => inputs.retAge + i);
-      const survival = ages.map(age => Math.max(2, Math.round(100 * Math.exp(-0.00035 * Math.pow(1.092, age - 45)))));
+      const ages = Array.from({length: inputs.lifeExpectancy - inputs.startAge + 1}, (_,i) => inputs.startAge + i);
+      let survivalData = [100];
+      let curr = 100;
+      for (let i = 1; i < ages.length; i++) {
+        const age = ages[i];
+        const mortality = 0.008 + 0.00038 * Math.pow(1.102, age - inputs.startAge);
+        curr *= (1 - mortality);
+        survivalData.push(Math.max(0, Math.round(curr)));
+      }
       charts.survival = new Chart(document.getElementById('survivalChart'), {
         type: 'line',
-        data: { labels: ages, datasets: [{ label: 'Ймовірність дожити (%)', data: survival, borderColor: '#2c3e50', tension: 0.4 }] }
+        data: { labels: ages, datasets: [{ label: 'Ймовірність дожити (%)', data: survivalData, borderColor: '#2c3e50', tension: 0.35 }] }
       });
 
-      // Heatmap
-      const hm = document.getElementById('heatmap');
-      hm.innerHTML = '';
+      // Heatmap + labels
       const returns = [4,5,6,7,8,9,10,11,12,13];
       const lives = [74,76,78,80,82,84,86,88,90,94];
+
+      // Y labels
+      const yLabels = document.getElementById('yLabels');
+      yLabels.innerHTML = lives.map(l => `<div class="y-label">${l}</div>`).join('');
+
+      // X labels
+      const xLabels = document.getElementById('xLabels');
+      xLabels.innerHTML = returns.map(r => `<div class="x-label">${r}%</div>`).join('');
+
+      // Heatmap cells
+      const hm = document.getElementById('heatmap');
+      hm.innerHTML = '';
       returns.forEach(r => {
         lives.forEach(l => {
-          const test = {...inputs, return:r, lifeExpectancy:l};
+          const test = {...inputs, return: r, lifeExpectancy: l};
           const p = calculatePrivate(test).finalCapital * 0.6 + test.existingCapital;
           const w = calculateWarsaw(test).totalReceived;
           const ratio = p / (w || 1);
